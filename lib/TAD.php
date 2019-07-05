@@ -245,6 +245,7 @@ class TAD
 
         $this->tad_soap = $soap_provider;
         $this->zklib = $zklib_provider;
+        $this->zklib->com_key = $this->com_key;
     }
 
     /**

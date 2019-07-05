@@ -60,6 +60,7 @@ class TADZKLib
     const CMD_SET_TIME = 202;
     const CMD_VERSION = 1100;
     const CMD_AUTH = 1102;
+    const CMD_ACK_UNAUTH = 2005;
     const CMD_DEVICE = 11;
     const CMD_CLEAR_ADMIN = 20;
     const CMD_SET_USER = 8;
@@ -82,6 +83,12 @@ class TADZKLib
      * @var int Device's UDP port.
      */
     private $port;
+
+    /**
+     * Security communication code.
+     * @var int 
+     */
+    public $com_key = 0;
 
     /**
      * @var TADZKlib holds a class instance.
@@ -254,7 +261,6 @@ class TADZKLib
     {
         $this->ip = $options['ip'];
         $this->port = $options['udp_port'];
-
         $this->zkclient = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
 
         $timeout = ['sec' => $options['connection_timeout'], 'usec' => 500000];
@@ -274,7 +280,6 @@ class TADZKLib
         $args = count($args) === 0 ? [] : array_shift($args);
         $encoding = $args['encoding'];
         unset($args['encoding']);
-
         $this->connect();
 
         switch($command){
@@ -303,6 +308,65 @@ class TADZKLib
     }
 
     /**
+     * Make base key
+     *
+     * @param $key
+     * @param $session_id
+     *
+     * @return integer
+     */
+    private function makeBaseKey($key, $session_id)
+    {
+        $k = 0;
+        for ($i = 0; $i < 32; $i++)
+        {
+            if ($key & (1 << $i))
+            {
+                $k = ($k << 1 | 1);
+            }
+            else
+            {
+                $k = $k << 1;
+            }
+        }
+        $k += $session_id;
+
+        $key_arr = unpack("C*", pack("L", $k));
+        $key_arr[1] ^= ord('Z');
+        $key_arr[2] ^= ord('K');
+        $key_arr[3] ^= ord('S');
+        $key_arr[4] ^= ord('O');
+
+        $base_key = unpack('L', pack("C*", $key_arr[1], $key_arr[2], $key_arr[3], $key_arr[4]));
+        $swp = ($base_key[1] >> 16);
+        $base_key = ($base_key[1] << 16) + $swp;
+
+        return $base_key;
+    }
+
+    /**
+     * Generate auth key
+     *
+     * @param $session_id
+     *
+     * @return integer
+     */
+    private function authKey($session_id)
+    {
+        $key =$this->makeBaseKey($this->com_key, $session_id);
+        $rand = rand(0, 255);
+        $key_arr = unpack("C*", pack("L", $key));
+        $key_arr[1] ^= $rand;
+        $key_arr[2] ^= $rand;
+        $key_arr[3] = $rand;
+        $key_arr[4] ^= $rand;
+
+        $auth_key = unpack('L', pack("C*", $key_arr[1], $key_arr[2], $key_arr[3], $key_arr[4]));
+
+        return $auth_key[1];
+    }
+
+    /**
      * Establish a connection to the device.
      *
      * @return boolean <b><code>true</code></b> on successfully conection, otherwise returns <b><code>false</code></b>.
@@ -325,7 +389,18 @@ class TADZKLib
                 $u = unpack('H2h1/H2h2/H2h3/H2h4/H2h5/H2h6', substr($this->data_recv, 0, 8));
 
                 $this->session_id =  hexdec($u['h6'].$u['h5']);
-                return $this->checkValid($this->data_recv);
+                $cmd =  $this->getCommandResponse($this->data_recv);
+                switch ($cmd) {
+                    case self::CMD_ACK_OK:
+                        return true;
+                        break;
+                    case self::CMD_ACK_UNAUTH:
+                        $auth_key = $this->authKey($this->session_id);
+                        $this->send_command_to_device(self::CMD_AUTH, pack('I', $auth_key));
+                        return $this->result;
+                        break;
+                }
+                return false;
             } else {
                 return false;
             }
@@ -555,6 +630,20 @@ class TADZKLib
         } else {
             return false;
         }
+    }
+
+    /**
+     * Checks a returned packet to see if it returned CMD_ACK_OK, indicating success.
+     *
+     * @param string $reply packet received from the device.
+     *
+     * @return int command response
+     */
+    private function getCommandResponse($reply)
+    {
+        $u = unpack('H2h1/H2h2', substr($reply, 0, 8));
+        $command = hexdec($u['h2'].$u['h1']);
+        return $command;
     }
 
     /**
