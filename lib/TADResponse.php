@@ -402,7 +402,8 @@ class TADResponse
      */
     private function sanitize_xml_string($xml, array $undesired_chars = [ "\n", "\r", "\t" ])
     {
-        return trim(str_replace($undesired_chars, '', $xml));
+        $ret =  trim(str_replace($undesired_chars, '', $xml));
+        return mb_convert_encoding($ret, "utf-8", mb_detect_encoding($ret));
     }
 
     /**
