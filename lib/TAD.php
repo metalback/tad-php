@@ -219,7 +219,7 @@ class TAD
     public static function is_device_online($ip, $timeout = 1)
     {
         $handler = curl_init($ip);
-        curl_setopt_array($handler, [ CURLOPT_TIMEOUT => $timeout, CURLOPT_RETURNTRANSFER => true ]);
+        curl_setopt_array($handler, [ CURLOPT_PROXY => '',CURLOPT_TIMEOUT => $timeout, CURLOPT_RETURNTRANSFER => true ]);
         $response = curl_exec($handler);
         curl_close($handler);
 
