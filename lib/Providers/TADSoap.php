@@ -56,6 +56,7 @@ class TADSoap
         'delete_user_password'=> '<ClearUserPassword><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN></Arg></ClearUserPassword>',
         'delete_data'         => '<ClearData><ArgComKey>%com_key%</ArgComKey><Arg><Value>%value%</Value></Arg></ClearData>',
         'refresh_db'          => '<RefreshDB><ArgComKey>%com_key%</ArgComKey></RefreshDB>',
+        'set_date_soap'       => '<SetDate><ArgComKey>%com_key%</ArgComKey><Arg><Date>%date%</Date><Time>%time%</Time></Arg></SetDate>',
     ];
 
     /**
