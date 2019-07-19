@@ -59,7 +59,7 @@ class TADFactory
             'location' => "http://{$options['ip']}/iWsService",
             'uri' => 'http://www.zksoftware/Service/message/',
             'connection_timeout' => $options['connection_timeout'],
-            'exceptions' => false,
+            'exceptions' => true,
             'trace' => true
         ];
 

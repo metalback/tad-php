@@ -106,7 +106,6 @@ class TADSoap
     {
         $soap_location = $this->get_soap_provider_options()['location'];
         $soap_request = $this->build_soap_request($soap_command, $soap_command_args, $encoding);
-
         $response = !is_array($soap_request) ?
                 $this->execute_single_soap_request($soap_request, $soap_location) :
                 $this->execute_multiple_soap_requests($soap_request, $soap_location);
@@ -170,7 +169,12 @@ class TADSoap
      */
     private function execute_single_soap_request($soap_request, $soap_location)
     {
-        return $this->soap_client->__doRequest($soap_request, $soap_location, '', self::SOAP_VERSION);
+        $response =  $this->soap_client->__doRequest($soap_request, $soap_location, '', self::SOAP_VERSION);
+        if((isset($this->soap_client->__soap_fault)) && ($this->soap_client->__soap_fault != null)) {
+            throw $this->soap_client->__soap_fault;
+        }
+        return $response;
+
     }
 
     /**
