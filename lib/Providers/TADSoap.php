@@ -46,16 +46,18 @@ class TADSoap
         'get_att_log'         => '<GetAttLog><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN></Arg></GetAttLog>',
         'get_user_info'       => '<GetUserInfo><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN></Arg></GetUserInfo>',
         'get_all_user_info'   => '<GetAllUserInfo><ArgComKey>%com_key%</ArgComKey></GetAllUserInfo>',
-        'get_user_template'   => '<GetUserTemplate><ArgComKey>0</ArgComKey><Arg><PIN>%pin%</PIN><FingerID>%finger_id%</FingerID></Arg></GetUserTemplate>',
+        'get_user_template'   => '<GetUserTemplate><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN><FingerID>%finger_id%</FingerID></Arg></GetUserTemplate>',
         'get_combination'     => '<GetCombination><ArgComKey>%com_key%</ArgComKey></GetCombination>',
         'get_option'          => '<GetOption><ArgComKey>%com_key%</ArgComKey><Arg><Name>%option_name%</Name></Arg></GetOption>',
         'set_user_info'       => [ '<DeleteUser><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN></Arg></DeleteUser>', '<SetUserInfo><ArgComKey>%com_key%</ArgComKey><Arg><Name>%name%</Name><Password>%password%</Password><Group>%group%</Group><Privilege>%privilege%</Privilege><Card>%card%</Card><PIN2>%pin%</PIN2><TZ1>%tz1%</TZ1><TZ2>%tz2%</TZ2><TZ3>%tz3%</TZ3></Arg></SetUserInfo>'],
+        'update_user_info'    => '<SetUserInfo><ArgComKey>%com_key%</ArgComKey><Arg><Name>%name%</Name><Password>%password%</Password><Group>%group%</Group><Privilege>%privilege%</Privilege><Card>%card%</Card><PIN2>%pin%</PIN2><TZ1>%tz1%</TZ1><TZ2>%tz2%</TZ2><TZ3>%tz3%</TZ3></Arg></SetUserInfo>',
         'set_user_template'   => '<SetUserTemplate><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN><FingerID>%finger_id%</FingerID><Size>%size%</Size><Valid>%valid%</Valid><Template>%template%</Template></Arg></SetUserTemplate>',
         'delete_user'         => '<DeleteUser><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN></Arg></DeleteUser>',
         'delete_template'     => '<DeleteTemplate><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN></Arg></DeleteTemplate>',
         'delete_user_password'=> '<ClearUserPassword><ArgComKey>%com_key%</ArgComKey><Arg><PIN>%pin%</PIN></Arg></ClearUserPassword>',
         'delete_data'         => '<ClearData><ArgComKey>%com_key%</ArgComKey><Arg><Value>%value%</Value></Arg></ClearData>',
         'refresh_db'          => '<RefreshDB><ArgComKey>%com_key%</ArgComKey></RefreshDB>',
+        'set_date_soap'       => '<SetDate><ArgComKey>%com_key%</ArgComKey><Arg><Date>%date%</Date><Time>%time%</Time></Arg></SetDate>',
     ];
 
     /**
@@ -104,7 +106,6 @@ class TADSoap
     {
         $soap_location = $this->get_soap_provider_options()['location'];
         $soap_request = $this->build_soap_request($soap_command, $soap_command_args, $encoding);
-
         $response = !is_array($soap_request) ?
                 $this->execute_single_soap_request($soap_request, $soap_location) :
                 $this->execute_multiple_soap_requests($soap_request, $soap_location);
@@ -168,7 +169,12 @@ class TADSoap
      */
     private function execute_single_soap_request($soap_request, $soap_location)
     {
-        return $this->soap_client->__doRequest($soap_request, $soap_location, '', self::SOAP_VERSION);
+        $response =  $this->soap_client->__doRequest($soap_request, $soap_location, '', self::SOAP_VERSION);
+        if((isset($this->soap_client->__soap_fault)) && ($this->soap_client->__soap_fault != null)) {
+            throw $this->soap_client->__soap_fault;
+        }
+        return $response;
+
     }
 
     /**
